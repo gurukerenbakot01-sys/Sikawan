@@ -1,68 +1,29 @@
 import { Teacher, StatusKepegawaian } from '../types';
+import { PERMANENT_DEFAULT_TEACHERS } from '../data/defaultTeachers';
 
 /**
- * Contoh data guru untuk format template Excel SD Negeri Babelan Kota 01
+ * Data format template Excel untuk diisi pengguna
  */
 export const TEMPLATE_SAMPLE_TEACHERS = [
   {
     no: 1,
-    nama: 'Hj. Rohanah, M.Pd.',
-    nip: '197005121993032004',
+    nama: 'Contoh: Nama Guru Lengkap, S.Pd.',
+    nip: '198501012010011001',
     status: 'PNS',
-    jabatan: 'Kepala Sekolah',
-    pangkat: 'Pembina Tk. I / IV/b',
-    jk: 'P',
-    mapel: 'Manajerial & Supervisi'
+    jabatan: 'Guru Kelas VI A',
+    pangkat: 'Penata / III/c',
+    jk: 'L',
+    mapel: 'Guru Kelas VI A'
   },
   {
     no: 2,
-    nama: 'Samsudin, S.Pd.SD',
-    nip: '198402152009021003',
-    status: 'PNS',
-    jabatan: 'Guru Kelas VI',
-    pangkat: 'Penata Tk. I / III/d',
-    jk: 'L',
-    mapel: 'Guru Kelas VI'
-  },
-  {
-    no: 3,
-    nama: 'Nurhasanah, S.Pd.I',
-    nip: '198807202022212015',
+    nama: 'Contoh: Nama Guru Lain, S.Pd.SD',
+    nip: '199002022022212002',
     status: 'PPPK',
-    jabatan: 'Guru PAI',
+    jabatan: 'Guru PAI & BP',
     pangkat: 'Ahli Pertama / IX',
     jk: 'P',
     mapel: 'Pendidikan Agama Islam'
-  },
-  {
-    no: 4,
-    nama: 'Ahmad Fauzi, S.Pd.',
-    nip: '199203102023211008',
-    status: 'PPPK',
-    jabatan: 'Guru PJOK',
-    pangkat: 'Ahli Pertama / IX',
-    jk: 'L',
-    mapel: 'Pendidikan Jasmani & Olahraga'
-  },
-  {
-    no: 5,
-    nama: 'Siti Aminah, S.Pd.',
-    nip: '198611052014032002',
-    status: 'PNS',
-    jabatan: 'Guru Kelas I',
-    pangkat: 'Penata / III/c',
-    jk: 'P',
-    mapel: 'Guru Kelas I'
-  },
-  {
-    no: 6,
-    nama: 'Budi Santoso, S.Kom.',
-    nip: '-',
-    status: 'Tenaga Kependidikan',
-    jabatan: 'Operator Sekolah / Administrasi',
-    pangkat: '-',
-    jk: 'L',
-    mapel: 'Tata Usaha & Dapodik'
   }
 ];
 

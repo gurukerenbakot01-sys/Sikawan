@@ -46,9 +46,25 @@ export default function App() {
   // Toast notification
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
 
-  // Load Data on Mount
+  // Load Data on Mount & Sync with Server
   useEffect(() => {
     loadData();
+
+    // Subscribe to DB changes
+    const unsubscribe = DatabaseService.subscribe(() => {
+      loadData();
+    });
+
+    // Fetch latest master data from server
+    DatabaseService.fetchFromServer().then(remote => {
+      if (remote.teachers || remote.submissions) {
+        loadData();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const loadData = () => {
@@ -109,6 +125,13 @@ export default function App() {
     const updated = DatabaseService.clearAllTeachers();
     setTeachers(updated);
     showToast('Database guru berhasil dikosongkan.', 'info');
+  };
+
+  const handleClearAllData = () => {
+    const { teachers: emptyT, submissions: emptyS } = DatabaseService.clearAllData();
+    setTeachers(emptyT);
+    setSubmissions(emptyS);
+    showToast('Seluruh database guru dan laporan telah berhasil dikosongkan.', 'info');
   };
 
   // Preview & Print Handlers
@@ -212,6 +235,7 @@ export default function App() {
         onSaveBulkTeachers={handleSaveBulkTeachers}
         onDeleteTeacher={handleDeleteTeacher}
         onClearAllTeachers={handleClearAllTeachers}
+        onClearAllData={handleClearAllData}
       />
 
       {/* 2. Virtual File Explorer Modal */}
@@ -255,6 +279,7 @@ export default function App() {
         submissions={submissions}
         teachers={teachers}
         onDataImported={loadData}
+        onClearAllData={handleClearAllData}
       />
 
       {/* 6. Success Popup Modal (BERHASIL DI SIMPAN) */}

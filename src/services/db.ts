@@ -1,53 +1,44 @@
 import { Teacher, Submission, StoredFile } from '../types';
+import { PERMANENT_DEFAULT_TEACHERS } from '../data/defaultTeachers';
 
-// Default Master Data Guru & Tenaga Kependidikan SD NEGERI BABELAN KOTA 01 (Kosong - Diisi Manual Secara Permanen)
-export const DEFAULT_TEACHERS: Teacher[] = [];
+export const DEFAULT_TEACHERS: Teacher[] = PERMANENT_DEFAULT_TEACHERS;
 
-const TEACHERS_STORAGE_KEY = 'sikawan_teachers_v2';
-const OLD_TEACHERS_STORAGE_KEY = 'sikawan_teachers_v1';
-const SUBMISSIONS_STORAGE_KEY = 'sikawan_submissions_v2';
-const OLD_SUBMISSIONS_STORAGE_KEY = 'sikawan_submissions_v1';
-
-// Seed initial empty list for submissions
-const INITIAL_SUBMISSIONS: Submission[] = [];
-
-// Built-in mock IDs to filter out if migrating from older version
-const LEGACY_MOCK_TEACHER_IDS = new Set([
-  'guru-001', 'guru-002', 'guru-003', 'guru-004', 'guru-005', 'guru-006',
-  'guru-007', 'guru-008', 'guru-009', 'guru-010', 'guru-011', 'guru-012'
-]);
+const TEACHERS_STORAGE_KEY = 'sikawan_teachers_v3';
+const OLD_TEACHERS_STORAGE_KEY_V2 = 'sikawan_teachers_v2';
+const SUBMISSIONS_STORAGE_KEY = 'sikawan_submissions_v3';
+const OLD_SUBMISSIONS_STORAGE_KEY_V2 = 'sikawan_submissions_v2';
 
 export class DatabaseService {
+  private static listeners: Array<() => void> = [];
+
+  static subscribe(listener: () => void) {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== listener);
+    };
+  }
+
+  private static notify() {
+    this.listeners.forEach(cb => {
+      try {
+        cb();
+      } catch (e) {
+        console.error('Listener callback error', e);
+      }
+    });
+  }
+
   // --- TEACHERS CRUD ---
   static getTeachers(): Teacher[] {
     try {
       const data = localStorage.getItem(TEACHERS_STORAGE_KEY);
-      let list: Teacher[] = [];
-
       if (data !== null) {
-        list = JSON.parse(data);
-      } else {
-        // Check if there was custom data in the old storage key, filtering out default mock entries
-        const oldData = localStorage.getItem(OLD_TEACHERS_STORAGE_KEY);
-        if (oldData) {
-          try {
-            const oldList: Teacher[] = JSON.parse(oldData);
-            // Keep only teachers that were NOT from the initial built-in mock list
-            list = oldList.filter(t => !LEGACY_MOCK_TEACHER_IDS.has(t.id));
-          } catch (e) {
-            list = [];
-          }
-        } else {
-          list = [];
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) {
+          return parsed.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
         }
-        localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(list));
       }
-
-      if (!Array.isArray(list)) {
-        list = [];
-      }
-
-      return list.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
+      return [];
     } catch (e) {
       console.error('Error fetching teachers from storage', e);
       return [];
@@ -61,7 +52,6 @@ export class DatabaseService {
 
   static saveTeacher(teacher: Teacher): Teacher[] {
     const teachers = this.getTeachers();
-    // Check by ID first, or by exact NIP if id is different
     const existingIndex = teachers.findIndex(
       t => t.id === teacher.id || (teacher.nip && teacher.nip !== '-' && t.nip === teacher.nip)
     );
@@ -74,8 +64,11 @@ export class DatabaseService {
       updated = [teacher, ...teachers];
     }
 
-    localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(updated));
-    return updated.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
+    const sorted = updated.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
+    localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(sorted));
+    this.notify();
+    this.syncToServer('teachers', sorted);
+    return sorted;
   }
 
   static saveBulkTeachers(newTeachers: Teacher[], replaceAll = false): Teacher[] {
@@ -85,33 +78,56 @@ export class DatabaseService {
     } else {
       const existing = this.getTeachers();
       const map = new Map<string, Teacher>();
-      existing.forEach(t => map.set(t.nip !== '-' ? t.nip : t.name, t));
+      existing.forEach(t => map.set(t.nip && t.nip !== '-' ? t.nip : t.name, t));
       newTeachers.forEach(t => {
-        const key = t.nip !== '-' ? t.nip : t.name;
+        const key = t.nip && t.nip !== '-' ? t.nip : t.name;
         map.set(key, t);
       });
       updated = Array.from(map.values());
     }
 
-    localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(updated));
-    return updated.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
+    const sorted = updated.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
+    localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(sorted));
+    this.notify();
+    this.syncToServer('teachers', sorted);
+    return sorted;
   }
 
   static deleteTeacher(id: string): Teacher[] {
     const teachers = this.getTeachers();
     const updated = teachers.filter(t => t.id !== id);
     localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(updated));
+    this.notify();
+    this.syncToServer('teachers', updated);
     return updated;
+  }
+
+  static loadDefaultTeachersTemplate(): Teacher[] {
+    const defaults = [...PERMANENT_DEFAULT_TEACHERS];
+    localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(defaults));
+    this.notify();
+    this.syncToServer('teachers', defaults);
+    return defaults;
   }
 
   static clearAllTeachers(): Teacher[] {
     localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify([]));
+    localStorage.removeItem(OLD_TEACHERS_STORAGE_KEY_V2);
+    this.notify();
+    this.syncToServer('teachers', []);
     return [];
   }
 
-  static resetTeachers(): Teacher[] {
+  static clearAllData(): { teachers: Teacher[]; submissions: Submission[] } {
     localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify([]));
-    return [];
+    localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify([]));
+    localStorage.removeItem(OLD_TEACHERS_STORAGE_KEY_V2);
+    localStorage.removeItem(OLD_SUBMISSIONS_STORAGE_KEY_V2);
+    this.notify();
+    try {
+      fetch('/api/clear-all', { method: 'POST' }).catch(() => {});
+    } catch (e) {}
+    return { teachers: [], submissions: [] };
   }
 
   // --- SUBMISSIONS CRUD ---
@@ -122,22 +138,6 @@ export class DatabaseService {
         const list = JSON.parse(data);
         return Array.isArray(list) ? list : [];
       }
-
-      // Check old submissions
-      const oldData = localStorage.getItem(OLD_SUBMISSIONS_STORAGE_KEY);
-      if (oldData) {
-        try {
-          const oldList: Submission[] = JSON.parse(oldData);
-          // Filter out mock submissions tied to default mock teachers
-          const filtered = oldList.filter(s => !LEGACY_MOCK_TEACHER_IDS.has(s.teacherId));
-          localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(filtered));
-          return filtered;
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify([]));
       return [];
     } catch (e) {
       console.error('Error fetching submissions from storage', e);
@@ -150,7 +150,7 @@ export class DatabaseService {
     const updated = [submission, ...current];
     localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(updated));
 
-    // Auto-ensure teacher is permanently saved in the teachers table as well
+    // Auto-ensure teacher is saved in the teachers table as well if present
     if (submission.teacherName) {
       const existingTeachers = this.getTeachers();
       const exists = existingTeachers.some(
@@ -171,6 +171,8 @@ export class DatabaseService {
       }
     }
 
+    this.notify();
+    this.syncToServer('submissions', updated);
     return updated;
   }
 
@@ -178,14 +180,70 @@ export class DatabaseService {
     const current = this.getSubmissions();
     const updated = current.filter(s => s.id !== id);
     localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(updated));
+    this.notify();
+    this.syncToServer('submissions', updated);
     return updated;
+  }
+
+  static clearAllSubmissions(): Submission[] {
+    localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify([]));
+    localStorage.removeItem(OLD_SUBMISSIONS_STORAGE_KEY_V2);
+    this.notify();
+    this.syncToServer('submissions', []);
+    return [];
   }
 
   static updateSubmissionStatus(id: string, status: Submission['status']): Submission[] {
     const current = this.getSubmissions();
     const updated = current.map(s => (s.id === id ? { ...s, status } : s));
     localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(updated));
+    this.notify();
+    this.syncToServer('submissions', updated);
     return updated;
+  }
+
+  // --- SERVER SYNCHRONIZATION ---
+  private static async syncToServer(type: 'teachers' | 'submissions', payload: any) {
+    try {
+      await fetch(`/api/${type}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      // Offline or client-only mode
+    }
+  }
+
+  static async fetchFromServer(): Promise<{ teachers?: Teacher[]; submissions?: Submission[] }> {
+    const result: { teachers?: Teacher[]; submissions?: Submission[] } = {};
+    try {
+      const resTeachers = await fetch('/api/teachers');
+      if (resTeachers.ok) {
+        const data = await resTeachers.json();
+        if (Array.isArray(data)) {
+          result.teachers = data;
+          localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(data));
+        }
+      }
+    } catch (e) {
+      // server offline
+    }
+
+    try {
+      const resSubmissions = await fetch('/api/submissions');
+      if (resSubmissions.ok) {
+        const data = await resSubmissions.json();
+        if (Array.isArray(data)) {
+          result.submissions = data;
+          localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(data));
+        }
+      }
+    } catch (e) {
+      // server offline
+    }
+
+    return result;
   }
 
   // --- ALL STORED FILES ARSIP AGGREGATOR ---
@@ -222,10 +280,13 @@ export class DatabaseService {
       const data = JSON.parse(jsonString);
       if (Array.isArray(data.teachers)) {
         localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(data.teachers));
+        this.syncToServer('teachers', data.teachers);
       }
       if (Array.isArray(data.submissions)) {
         localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(data.submissions));
+        this.syncToServer('submissions', data.submissions);
       }
+      this.notify();
       return true;
     } catch (e) {
       console.error('Failed to import backup', e);

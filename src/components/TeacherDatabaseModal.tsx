@@ -34,6 +34,7 @@ interface TeacherDatabaseModalProps {
   onSaveBulkTeachers: (newTeachers: Teacher[], replaceAll?: boolean) => void;
   onDeleteTeacher: (id: string) => void;
   onClearAllTeachers?: () => void;
+  onClearAllData?: () => void;
 }
 
 export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
@@ -42,7 +43,8 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
   teachers,
   onSaveBulkTeachers,
   onDeleteTeacher,
-  onClearAllTeachers
+  onClearAllTeachers,
+  onClearAllData
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'list' | 'import'>('list');
@@ -54,7 +56,7 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
   const [pastedText, setPastedText] = useState<string>('');
   const [parsedPreviewTeachers, setParsedPreviewTeachers] = useState<Teacher[]>([]);
   const [importErrors, setImportErrors] = useState<string[]>([]);
-  const [importMode, setImportMode] = useState<'append' | 'replace'>('append');
+  const [importMode, setImportMode] = useState<'append' | 'replace'>('replace');
   const [importSuccessMessage, setImportSuccessMessage] = useState<string>('');
   const [isProcessingFile, setIsProcessingFile] = useState<boolean>(false);
 
@@ -129,29 +131,12 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
     setImportErrors(result.errors);
   };
 
-  // Load sample template data directly into preview
-  const handleLoadSampleIntoPreview = () => {
-    const sampleTeachers: Teacher[] = TEMPLATE_SAMPLE_TEACHERS.map((t, idx) => ({
-      id: `guru-sample-${idx + 1}-${Date.now()}`,
-      name: t.nama,
-      nip: t.nip,
-      statusKepegawaian: t.status as any,
-      jabatan: t.jabatan,
-      pangkatGolongan: t.pangkat,
-      jenisKelamin: t.jk as any,
-      mataPelajaranAtauKelas: t.mapel
-    }));
-    setParsedPreviewTeachers(sampleTeachers);
-    setImportErrors([]);
-    setImportSuccessMessage('Data contoh template siap diimpor ke database.');
-  };
-
-  // Confirm Import
+  // Confirm Import & Save as Master Database Baku
   const handleApplyImport = () => {
     if (parsedPreviewTeachers.length === 0) return;
 
     onSaveBulkTeachers(parsedPreviewTeachers, importMode === 'replace');
-    setImportSuccessMessage(`Berhasil mengimpor ${parsedPreviewTeachers.length} data guru ke database!`);
+    setImportSuccessMessage(`Berhasil menyimpan permanen ${parsedPreviewTeachers.length} data pegawai sebagai Master Database Baku!`);
     setParsedPreviewTeachers([]);
     setPastedText('');
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -314,7 +299,7 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
                   />
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
                   {teachers.length > 0 && (
                     <>
                       {showClearConfirm ? (
@@ -331,7 +316,7 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
                             }}
                             className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold cursor-pointer"
                           >
-                            Ya, Hapus Semua
+                            Ya, Kosongkan
                           </button>
                           <button
                             onClick={() => setShowClearConfirm(false)}
@@ -343,9 +328,10 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
                       ) : (
                         <button
                           onClick={() => setShowClearConfirm(true)}
-                          className="px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-xl font-semibold transition-colors cursor-pointer inline-flex items-center gap-1"
+                          className="px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50 border border-rose-300 bg-rose-50/40 rounded-xl font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                          title="Kosongkan seluruh data guru dari database"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
                           <span>Kosongkan Database</span>
                         </button>
                       )}
@@ -356,32 +342,32 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
 
               {/* Table of Teachers or Empty State */}
               {teachers.length === 0 ? (
-                <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center bg-slate-50 space-y-4">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-xs">
+                <div className="border-2 border-dashed border-emerald-300/80 rounded-2xl p-8 text-center bg-emerald-50/30 space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto shadow-xs">
                     <FileSpreadsheet className="w-7 h-7" />
                   </div>
-                  <div className="max-w-md mx-auto space-y-1">
-                    <h4 className="font-bold text-slate-900 text-sm">Database Guru Belum Terisi</h4>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      Silakan unduh format template Excel resmi, isi data guru dan tenaga kependidikan SD Negeri Babelan Kota 01, lalu unggah kembali melalui menu <strong>Impor File Excel</strong>.
+                  <div className="max-w-md mx-auto space-y-1.5">
+                    <h4 className="font-bold text-slate-900 text-sm">Database Master Pegawai Masih Kosong</h4>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Silakan unduh format template Excel resmi, isi dengan daftar guru/pegawai yang aktif, lalu impor kembali. Data yang Anda impor akan <strong>otomatis tersimpan permanen sebagai Master Database Baku</strong> dan aktif pada seluruh formulir.
                     </p>
                   </div>
 
                   <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                     <button
                       onClick={downloadTeacherExcelTemplate}
-                      className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                      className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer active:scale-95"
                     >
                       <Download className="w-4 h-4 text-emerald-200" />
-                      <span>1. Unduh Format Excel Guru (.xls)</span>
+                      <span>1. Unduh Format Template Excel (.xls)</span>
                     </button>
 
                     <button
                       onClick={() => setActiveTab('import')}
-                      className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                      className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer active:scale-95"
                     >
                       <Upload className="w-4 h-4 text-emerald-400" />
-                      <span>2. Impor File Excel Guru</span>
+                      <span>2. Impor Berkas Guru & Simpan Baku</span>
                     </button>
                   </div>
                 </div>
@@ -547,15 +533,6 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
                     <span>Tempel / Salin dari Excel</span>
                   </button>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleLoadSampleIntoPreview}
-                  className="text-xs text-emerald-700 hover:text-emerald-900 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Muat Contoh Data Template</span>
-                </button>
               </div>
 
               {/* File Upload Dropzone */}
@@ -713,10 +690,10 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
                     <button
                       type="button"
                       onClick={handleApplyImport}
-                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-md shadow-emerald-700/20 cursor-pointer"
+                      className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-md shadow-emerald-800/20 cursor-pointer active:scale-95 transition-all"
                     >
-                      <Check className="w-4 h-4" />
-                      <span>Simpan {parsedPreviewTeachers.length} Data Guru ke Database</span>
+                      <Check className="w-4 h-4 text-emerald-300" />
+                      <span>Simpan Permanen {parsedPreviewTeachers.length} Data Pegawai (Aktifkan Baku)</span>
                     </button>
                   </div>
                 </div>
