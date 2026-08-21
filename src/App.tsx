@@ -127,6 +127,12 @@ export default function App() {
     showToast('Database guru berhasil dikosongkan.', 'info');
   };
 
+  const handleLoadDefaultTeachers = () => {
+    const updated = DatabaseService.loadDefaultTeachersTemplate();
+    setTeachers(updated);
+    showToast('Berhasil memuat master 39 pegawai baku SDN Babelan Kota 01.');
+  };
+
   const handleClearAllData = () => {
     const { teachers: emptyT, submissions: emptyS } = DatabaseService.clearAllData();
     setTeachers(emptyT);
@@ -235,6 +241,7 @@ export default function App() {
         onSaveBulkTeachers={handleSaveBulkTeachers}
         onDeleteTeacher={handleDeleteTeacher}
         onClearAllTeachers={handleClearAllTeachers}
+        onLoadDefaultTeachers={handleLoadDefaultTeachers}
         onClearAllData={handleClearAllData}
       />
 

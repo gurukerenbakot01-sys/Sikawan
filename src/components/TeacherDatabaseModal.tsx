@@ -34,6 +34,7 @@ interface TeacherDatabaseModalProps {
   onSaveBulkTeachers: (newTeachers: Teacher[], replaceAll?: boolean) => void;
   onDeleteTeacher: (id: string) => void;
   onClearAllTeachers?: () => void;
+  onLoadDefaultTeachers?: () => void;
   onClearAllData?: () => void;
 }
 
@@ -44,12 +45,14 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
   onSaveBulkTeachers,
   onDeleteTeacher,
   onClearAllTeachers,
+  onLoadDefaultTeachers,
   onClearAllData
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'list' | 'import'>('list');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
+  const [showLoadBakuConfirm, setShowLoadBakuConfirm] = useState<boolean>(false);
   
   // Import States
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file');
@@ -337,6 +340,38 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
                       )}
                     </>
                   )}
+
+                  {showLoadBakuConfirm ? (
+                    <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 p-1.5 rounded-xl animate-in fade-in">
+                      <span className="text-[11px] font-bold text-emerald-900 px-1">Muat Master 39 Pegawai Resmi SDN Babelan Kota 01?</span>
+                      <button
+                        onClick={() => {
+                          if (onLoadDefaultTeachers) {
+                            onLoadDefaultTeachers();
+                          }
+                          setShowLoadBakuConfirm(false);
+                        }}
+                        className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold cursor-pointer"
+                      >
+                        Ya, Muat
+                      </button>
+                      <button
+                        onClick={() => setShowLoadBakuConfirm(false)}
+                        className="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowLoadBakuConfirm(true)}
+                      className="px-3 py-1.5 text-xs text-emerald-900 hover:bg-emerald-100/70 border border-emerald-300 bg-emerald-50 rounded-xl font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                      title="Muat master database 39 guru & tendik resmi SD Negeri Babelan Kota 01"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Muat Master Baku (39 Pegawai)</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -368,6 +403,18 @@ export const TeacherDatabaseModal: React.FC<TeacherDatabaseModalProps> = ({
                     >
                       <Upload className="w-4 h-4 text-emerald-400" />
                       <span>2. Impor Berkas Guru & Simpan Baku</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (onLoadDefaultTeachers) {
+                          onLoadDefaultTeachers();
+                        }
+                      }}
+                      className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95"
+                    >
+                      <RefreshCw className="w-4 h-4 text-emerald-700" />
+                      <span>Muat Master 39 Pegawai Baku</span>
                     </button>
                   </div>
                 </div>

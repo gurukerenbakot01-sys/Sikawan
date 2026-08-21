@@ -2,30 +2,18 @@ import { Teacher, StatusKepegawaian } from '../types';
 import { PERMANENT_DEFAULT_TEACHERS } from '../data/defaultTeachers';
 
 /**
- * Data format template Excel untuk diisi pengguna
+ * Data master 39 guru resmi SDN Babelan Kota 01 untuk format template dan ekspor
  */
-export const TEMPLATE_SAMPLE_TEACHERS = [
-  {
-    no: 1,
-    nama: 'Contoh: Nama Guru Lengkap, S.Pd.',
-    nip: '198501012010011001',
-    status: 'PNS',
-    jabatan: 'Guru Kelas VI A',
-    pangkat: 'Penata / III/c',
-    jk: 'L',
-    mapel: 'Guru Kelas VI A'
-  },
-  {
-    no: 2,
-    nama: 'Contoh: Nama Guru Lain, S.Pd.SD',
-    nip: '199002022022212002',
-    status: 'PPPK',
-    jabatan: 'Guru PAI & BP',
-    pangkat: 'Ahli Pertama / IX',
-    jk: 'P',
-    mapel: 'Pendidikan Agama Islam'
-  }
-];
+export const TEMPLATE_SAMPLE_TEACHERS = PERMANENT_DEFAULT_TEACHERS.map((t, index) => ({
+  no: index + 1,
+  nama: t.name,
+  nip: t.nip,
+  status: t.statusKepegawaian,
+  jabatan: t.jabatan,
+  pangkat: t.pangkatGolongan || '-',
+  jk: t.jenisKelamin || 'P',
+  mapel: t.mataPelajaranAtauKelas || t.jabatan
+}));
 
 /**
  * Generate official CSV Template with UTF-8 BOM

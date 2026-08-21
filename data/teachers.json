@@ -1,1 +1,392 @@
-[]
+[
+  {
+    "id": "guru-1",
+    "name": "LAILATUL FAJRIAH, S.Pd.SD",
+    "nip": "197808202008012005",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Kepala Sekolah",
+    "pangkatGolongan": "Penata Tk. I, III/d",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Kepala Sekolah"
+  },
+  {
+    "id": "guru-2",
+    "name": "TRI ASTUTY, S.Pd.,M.M",
+    "nip": "197801312008012006",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas I A",
+    "pangkatGolongan": "Penata Tk. I, III/d",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas I A"
+  },
+  {
+    "id": "guru-3",
+    "name": "YAYAH SUTINAH, S.Pd",
+    "nip": "197604122007012012",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas I-II B",
+    "pangkatGolongan": "Penata, III/c",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas I-II B"
+  },
+  {
+    "id": "guru-4",
+    "name": "KIKI FUJI LESTARI, S.Pd",
+    "nip": "198802222025212005",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas I C",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas I C"
+  },
+  {
+    "id": "guru-5",
+    "name": "ROCHIZA EFFENDI, S.Pd",
+    "nip": "198104092008012003",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas I D",
+    "pangkatGolongan": "Penata, III/c",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas I D"
+  },
+  {
+    "id": "guru-6",
+    "name": "Hj. AISYAH, S.Ag.,M.M",
+    "nip": "197606122008012003",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas II A",
+    "pangkatGolongan": "Penata Tk. I, III/d",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas II A"
+  },
+  {
+    "id": "guru-7",
+    "name": "MARLINAH, S.Pd",
+    "nip": "199106182025212013",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas II C",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas II C"
+  },
+  {
+    "id": "guru-8",
+    "name": "LATIPAH, S.Pd",
+    "nip": "199503092025212087",
+    "statusKepegawaian": "PPPK PW",
+    "jabatan": "Guru Kelas II D",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas II D"
+  },
+  {
+    "id": "guru-9",
+    "name": "FATKHURIYAH, S.Pd",
+    "nip": "197305232008012002",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas II E",
+    "pangkatGolongan": "Penata Muda Tk. I, III/b",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas II E"
+  },
+  {
+    "id": "guru-10",
+    "name": "EMI SUHAEMI, S.Pd",
+    "nip": "197605262025212004",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas III A",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas III A"
+  },
+  {
+    "id": "guru-11",
+    "name": "YULI HERLIYANTI, S.Pd",
+    "nip": "197507292008012008",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas III B",
+    "pangkatGolongan": "Penata, III/c",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas III B"
+  },
+  {
+    "id": "guru-12",
+    "name": "SRI SUPRAPTI, S.Pd",
+    "nip": "198201272025212007",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas III C",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas III C"
+  },
+  {
+    "id": "guru-13",
+    "name": "TITIN, S.Pd",
+    "nip": "196707172008012005",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas III D",
+    "pangkatGolongan": "Penata Muda Tk. I, III/b",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas III D"
+  },
+  {
+    "id": "guru-14",
+    "name": "ERYASANI RAHMAWATI, S.Pd",
+    "nip": "199301222025212005",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas III E",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas III E"
+  },
+  {
+    "id": "guru-15",
+    "name": "AHMAD SHOHEH, S.Pd",
+    "nip": "198806122025211014",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas IV A",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Guru Kelas IV A"
+  },
+  {
+    "id": "guru-16",
+    "name": "NURDIANSYAH, S.Pd",
+    "nip": "198509062025211010",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas IV B",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Guru Kelas IV B"
+  },
+  {
+    "id": "guru-17",
+    "name": "SURYATUN, S.Pd",
+    "nip": "198111152008012004",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas IV C",
+    "pangkatGolongan": "Penata, III/c",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas IV C"
+  },
+  {
+    "id": "guru-18",
+    "name": "SYAFARUDIN AHMED, S.Pd",
+    "nip": "198511092025211006",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas IV D",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Guru Kelas IV D"
+  },
+  {
+    "id": "guru-19",
+    "name": "PUTRI ALFIANI, S.Pd",
+    "nip": "199201072025212010",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas IV E",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas IV E"
+  },
+  {
+    "id": "guru-20",
+    "name": "WAHYUNING HARDIYANTI, S.Pd",
+    "nip": "199404172025212015",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas V A",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas V A"
+  },
+  {
+    "id": "guru-21",
+    "name": "DOLA SARLITA, S.Pd",
+    "nip": "199411162020122006",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas V B",
+    "pangkatGolongan": "Penata Muda, III/a",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas V B"
+  },
+  {
+    "id": "guru-22",
+    "name": "NISA UTAMININGRUM, S.Pd",
+    "nip": "198808022024212007",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas V C",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas V C"
+  },
+  {
+    "id": "guru-23",
+    "name": "SOPIATI, S.Pd",
+    "nip": "198411012008012006",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas V D",
+    "pangkatGolongan": "Penata Muda Tk. I, III/b",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas V D"
+  },
+  {
+    "id": "guru-24",
+    "name": "DODY ARDIANSYAH, S.Pd",
+    "nip": "197612132008011003",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas V E",
+    "pangkatGolongan": "Penata Muda, III/a",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Guru Kelas V E"
+  },
+  {
+    "id": "guru-25",
+    "name": "NGATIMAH, S.Pd",
+    "nip": "197212172014082001",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas VI A",
+    "pangkatGolongan": "Penata Muda Tk. I, III/b",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas VI A"
+  },
+  {
+    "id": "guru-26",
+    "name": "H. RAHMAT HIDAYATTULLOH, S.Pd",
+    "nip": "197808182008011004",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas VI B",
+    "pangkatGolongan": "Penata Tk. I, III/d",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Guru Kelas VI B"
+  },
+  {
+    "id": "guru-27",
+    "name": "ESIN RIAWATI, S.Pd",
+    "nip": "198607262009022001",
+    "statusKepegawaian": "ASN",
+    "jabatan": "Guru Kelas VI C",
+    "pangkatGolongan": "Penata Muda Tk. I, III/b",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru Kelas VI C"
+  },
+  {
+    "id": "guru-28",
+    "name": "DIDI MULYADI, S.Pd",
+    "nip": "198911062025211012",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru Kelas VI D",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Guru Kelas VI D"
+  },
+  {
+    "id": "guru-29",
+    "name": "EDI SAPUTRA, S.Sos.I",
+    "nip": "198004032025211031",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru PJOK",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Guru PJOK"
+  },
+  {
+    "id": "guru-30",
+    "name": "RAFLY BAHRI, S.Pd",
+    "nip": "199509072024211007",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru PJOK",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Guru PJOK"
+  },
+  {
+    "id": "guru-31",
+    "name": "MAHFUDZ, S.Pd.I",
+    "nip": "198506242025211006",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru PAI",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Guru PAI"
+  },
+  {
+    "id": "guru-32",
+    "name": "ABD. QODIR, S.Pd.I",
+    "nip": "198911102025211006",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru PAI",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Guru PAI"
+  },
+  {
+    "id": "guru-33",
+    "name": "MUHMMAD RIDUAN, S.Pd.I",
+    "nip": "198801282025211015",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru PAI",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Guru PAI"
+  },
+  {
+    "id": "guru-34",
+    "name": "NURYANIH, S.Pd.I",
+    "nip": "197911042025212022",
+    "statusKepegawaian": "PPPK PW",
+    "jabatan": "Guru PAI",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru PAI"
+  },
+  {
+    "id": "guru-35",
+    "name": "SUMARTINI, S.Ag",
+    "nip": "198107252025212007",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Guru PAB",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "P",
+    "mataPelajaranAtauKelas": "Guru PAB"
+  },
+  {
+    "id": "guru-36",
+    "name": "SAMSUDIN",
+    "nip": "198105102025211008",
+    "statusKepegawaian": "PPPK",
+    "jabatan": "Pengadministrasi Perkantoran",
+    "pangkatGolongan": "V",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Operator Dapodik"
+  },
+  {
+    "id": "guru-37",
+    "name": "ADE TAUFIQQURROHMAN, S.Sos",
+    "nip": "199504042025211066",
+    "statusKepegawaian": "PPPK PW",
+    "jabatan": "Penata Layanan Operasional",
+    "pangkatGolongan": "IX",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Operator BOS"
+  },
+  {
+    "id": "guru-38",
+    "name": "LARNO",
+    "nip": "197507242025211025",
+    "statusKepegawaian": "PPPK PW",
+    "jabatan": "Operator Layanan Operasional",
+    "pangkatGolongan": "V",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Penjaga Sekolah"
+  },
+  {
+    "id": "guru-39",
+    "name": "SARIWANTO",
+    "nip": "198212232025211043",
+    "statusKepegawaian": "PPPK PW",
+    "jabatan": "Operator Layanan Operasional",
+    "pangkatGolongan": "V",
+    "jenisKelamin": "L",
+    "mataPelajaranAtauKelas": "Penjaga Sekolah"
+  }
+]

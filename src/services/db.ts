@@ -34,14 +34,20 @@ export class DatabaseService {
       const data = localStorage.getItem(TEACHERS_STORAGE_KEY);
       if (data !== null) {
         const parsed = JSON.parse(data);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
         }
+      }
+      // If storage is empty or not yet set, initialize with permanent default teachers
+      if (PERMANENT_DEFAULT_TEACHERS.length > 0) {
+        localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(PERMANENT_DEFAULT_TEACHERS));
+        this.syncToServer('teachers', PERMANENT_DEFAULT_TEACHERS);
+        return [...PERMANENT_DEFAULT_TEACHERS].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
       }
       return [];
     } catch (e) {
       console.error('Error fetching teachers from storage', e);
-      return [];
+      return [...PERMANENT_DEFAULT_TEACHERS];
     }
   }
 
