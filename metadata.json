@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix Sikawan SDN Babelan Kota 01",
+  "description": "Aplikasi Laporan Kinerja Sikawan Harian dan Bulanan SD Negeri Babelan Kota 01 Tahun 2026",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
