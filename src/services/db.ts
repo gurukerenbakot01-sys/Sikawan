@@ -505,16 +505,24 @@ export class DatabaseService {
   }
 
   // --- SERVER SYNCHRONIZATION ---
-  private static async syncToServer(type: 'teachers' | 'submissions', payload: any) {
-    try {
-      await fetch(`/api/${type}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-    } catch (e) {
-      // Server offline or network issue
+  private static async syncToServer(type: 'teachers' | 'submissions', payload: any, retries = 3): Promise<boolean> {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const res = await fetch(`/api/${type}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          return true;
+        }
+      } catch (e) {
+        if (attempt < retries - 1) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        }
+      }
     }
+    return false;
   }
 
   static async fetchFromServer(): Promise<{ teachers?: Teacher[]; submissions?: Submission[] }> {

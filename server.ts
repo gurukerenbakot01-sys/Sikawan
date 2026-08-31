@@ -93,6 +93,9 @@ function broadcastEvent(eventType: string, data: any) {
   for (const client of sseClients) {
     try {
       client.write(payload);
+      if (typeof (client as any).flush === 'function') {
+        (client as any).flush();
+      }
     } catch (e) {
       sseClients.delete(client);
     }
@@ -108,10 +111,11 @@ async function startServer() {
 
   // --- SSE REAL-TIME EVENT STREAM ---
   app.get('/api/events', (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform, no-store');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.flushHeaders?.();
 
     sseClients.add(res);
@@ -123,15 +127,21 @@ async function startServer() {
       submissionsCount: readSubmissions().length,
       timestamp: new Date().toISOString()
     })}\n\n`);
+    if (typeof (res as any).flush === 'function') {
+      (res as any).flush();
+    }
 
     const pingInterval = setInterval(() => {
       try {
         res.write(`: ping\n\n`);
+        if (typeof (res as any).flush === 'function') {
+          (res as any).flush();
+        }
       } catch (e) {
         clearInterval(pingInterval);
         sseClients.delete(res);
       }
-    }, 20000);
+    }, 15000);
 
     req.on('close', () => {
       clearInterval(pingInterval);
