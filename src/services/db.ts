@@ -268,7 +268,6 @@ export class DatabaseService {
         memoryTeachers = [...PERMANENT_DEFAULT_TEACHERS];
         safeSetLocalStorage(TEACHERS_STORAGE_KEY, PERMANENT_DEFAULT_TEACHERS);
         saveToIndexedDB('teachers', PERMANENT_DEFAULT_TEACHERS);
-        this.syncToServer('teachers', PERMANENT_DEFAULT_TEACHERS);
         return [...PERMANENT_DEFAULT_TEACHERS].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
       }
       return [];
@@ -449,8 +448,8 @@ export class DatabaseService {
 
     this.notify();
 
-    // Persist permanently to server
-    this.syncToServer('submissions', updated);
+    // Persist permanently to server as single atomic record
+    this.syncToServer('submissions', submission);
     return updated;
   }
 
