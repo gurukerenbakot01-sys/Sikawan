@@ -45,6 +45,7 @@ export default function App() {
 
   // Toast notification
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
+  const [syncStatus, setSyncStatus] = useState<'connected' | 'connecting' | 'offline'>('connecting');
 
   // Load Data on Mount & Real-Time Sync with Server across Accounts/Devices
   useEffect(() => {
@@ -57,6 +58,11 @@ export default function App() {
     // Subscribe to DB changes
     const unsubscribe = DatabaseService.subscribe(() => {
       loadData();
+    });
+
+    // Subscribe to real-time sync connection status
+    const unsubscribeSync = DatabaseService.subscribeSyncStatus(status => {
+      setSyncStatus(status);
     });
 
     // Background real-time polling every 5s for multi-device & multi-account updates
@@ -76,6 +82,7 @@ export default function App() {
 
     return () => {
       unsubscribe();
+      unsubscribeSync();
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocusOrVisible);
       document.removeEventListener('visibilitychange', handleFocusOrVisible);
@@ -192,6 +199,7 @@ export default function App() {
         onOpenExportModal={() => setIsExportModalOpen(true)}
         totalTeachers={teachers.length}
         totalSubmissions={submissions.length}
+        syncStatus={syncStatus}
       />
 
       {/* Main Container */}

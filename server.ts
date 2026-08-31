@@ -85,12 +85,59 @@ function writeSubmissions(submissions: any[]) {
   }
 }
 
+// List of active SSE connected clients for real-time sync
+const sseClients = new Set<express.Response>();
+
+function broadcastEvent(eventType: string, data: any) {
+  const payload = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+  for (const client of sseClients) {
+    try {
+      client.write(payload);
+    } catch (e) {
+      sseClients.delete(client);
+    }
+  }
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+
+  // --- SSE REAL-TIME EVENT STREAM ---
+  app.get('/api/events', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    sseClients.add(res);
+
+    // Send initial connected ping
+    res.write(`event: connected\ndata: ${JSON.stringify({
+      status: 'connected',
+      teachersCount: readTeachers().length,
+      submissionsCount: readSubmissions().length,
+      timestamp: new Date().toISOString()
+    })}\n\n`);
+
+    const pingInterval = setInterval(() => {
+      try {
+        res.write(`: ping\n\n`);
+      } catch (e) {
+        clearInterval(pingInterval);
+        sseClients.delete(res);
+      }
+    }, 20000);
+
+    req.on('close', () => {
+      clearInterval(pingInterval);
+      sseClients.delete(res);
+    });
+  });
 
   // --- API ROUTES ---
   app.get('/api/health', (req, res) => {
@@ -99,6 +146,7 @@ async function startServer() {
       app: 'Sikawan SDN Babelan Kota 01',
       teachersCount: readTeachers().length,
       submissionsCount: readSubmissions().length,
+      activeClients: sseClients.size,
       timestamp: new Date().toISOString()
     });
   });
@@ -114,6 +162,7 @@ async function startServer() {
     const data = req.body;
     if (Array.isArray(data)) {
       writeTeachers(data);
+      broadcastEvent('teachers_updated', data);
       return res.json({ success: true, count: data.length, teachers: data });
     }
     return res.status(400).json({ error: 'Body must be an array of teachers' });
@@ -122,6 +171,7 @@ async function startServer() {
   // Reset to default 39 permanent teachers
   app.post('/api/teachers/reset-baku', (req, res) => {
     writeTeachers(PERMANENT_DEFAULT_TEACHERS);
+    broadcastEvent('teachers_updated', PERMANENT_DEFAULT_TEACHERS);
     res.json({ success: true, count: PERMANENT_DEFAULT_TEACHERS.length, teachers: PERMANENT_DEFAULT_TEACHERS });
   });
 
@@ -131,12 +181,14 @@ async function startServer() {
     const current = readTeachers();
     const filtered = current.filter((t: any) => t.id !== id);
     writeTeachers(filtered);
+    broadcastEvent('teachers_updated', filtered);
     res.json({ success: true, count: filtered.length, teachers: filtered });
   });
 
   // Clear all teachers
   app.post('/api/teachers/clear', (req, res) => {
     writeTeachers([]);
+    broadcastEvent('teachers_updated', []);
     res.json({ success: true, count: 0, teachers: [] });
   });
 
@@ -151,6 +203,7 @@ async function startServer() {
     const data = req.body;
     if (Array.isArray(data)) {
       writeSubmissions(data);
+      broadcastEvent('submissions_updated', data);
       return res.json({ success: true, count: data.length, submissions: data });
     } else if (data && typeof data === 'object' && data.id) {
       // Single submission added
@@ -164,6 +217,7 @@ async function startServer() {
         updated = [data, ...current];
       }
       writeSubmissions(updated);
+      broadcastEvent('submissions_updated', updated);
       return res.json({ success: true, count: updated.length, submissions: updated });
     }
     return res.status(400).json({ error: 'Body must be an array or a submission object' });
@@ -176,6 +230,7 @@ async function startServer() {
     const current = readSubmissions();
     const updated = current.map((s: any) => (s.id === id ? { ...s, status } : s));
     writeSubmissions(updated);
+    broadcastEvent('submissions_updated', updated);
     res.json({ success: true, count: updated.length, submissions: updated });
   });
 
@@ -185,12 +240,14 @@ async function startServer() {
     const current = readSubmissions();
     const updated = current.filter((s: any) => s.id !== id);
     writeSubmissions(updated);
+    broadcastEvent('submissions_updated', updated);
     res.json({ success: true, count: updated.length, submissions: updated });
   });
 
   // Clear all submissions
   app.post('/api/submissions/clear', (req, res) => {
     writeSubmissions([]);
+    broadcastEvent('submissions_updated', []);
     res.json({ success: true, count: 0, submissions: [] });
   });
 
@@ -198,6 +255,7 @@ async function startServer() {
   app.post('/api/clear-all', (req, res) => {
     writeTeachers([]);
     writeSubmissions([]);
+    broadcastEvent('clear_all', {});
     res.json({ success: true, message: 'Semua database guru dan laporan telah dikosongkan.' });
   });
 

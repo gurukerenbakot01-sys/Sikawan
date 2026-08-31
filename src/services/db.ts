@@ -100,12 +100,35 @@ function safeSetLocalStorage(key: string, data: any[]) {
 
 export class DatabaseService {
   private static listeners: Array<() => void> = [];
+  private static syncStatusListeners: Array<(status: 'connected' | 'connecting' | 'offline') => void> = [];
+  private static currentSyncStatus: 'connected' | 'connecting' | 'offline' = 'connecting';
+  private static eventSource: EventSource | null = null;
+  private static reconnectTimeout: any = null;
 
   static subscribe(listener: () => void) {
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener);
     };
+  }
+
+  static subscribeSyncStatus(listener: (status: 'connected' | 'connecting' | 'offline') => void) {
+    this.syncStatusListeners.push(listener);
+    listener(this.currentSyncStatus);
+    return () => {
+      this.syncStatusListeners = this.syncStatusListeners.filter(l => l !== listener);
+    };
+  }
+
+  private static setSyncStatus(status: 'connected' | 'connecting' | 'offline') {
+    if (this.currentSyncStatus !== status) {
+      this.currentSyncStatus = status;
+      this.syncStatusListeners.forEach(cb => {
+        try {
+          cb(status);
+        } catch (e) {}
+      });
+    }
   }
 
   private static notify() {
@@ -116,6 +139,81 @@ export class DatabaseService {
         console.error('Listener callback error', e);
       }
     });
+  }
+
+  // --- REAL-TIME EVENT STREAM (SSE) ---
+  static connectEventStream() {
+    if (typeof window === 'undefined') return;
+    if (this.eventSource) {
+      try {
+        this.eventSource.close();
+      } catch (e) {}
+    }
+
+    try {
+      this.setSyncStatus('connecting');
+      const es = new EventSource('/api/events');
+      this.eventSource = es;
+
+      es.onopen = () => {
+        this.setSyncStatus('connected');
+      };
+
+      es.addEventListener('connected', () => {
+        this.setSyncStatus('connected');
+        this.fetchFromServer();
+      });
+
+      es.addEventListener('submissions_updated', (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (Array.isArray(data)) {
+            memorySubmissions = data;
+            safeSetLocalStorage(SUBMISSIONS_STORAGE_KEY, data);
+            saveToIndexedDB('submissions', data);
+            this.notify();
+          }
+        } catch (e) {}
+      });
+
+      es.addEventListener('teachers_updated', (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (Array.isArray(data)) {
+            memoryTeachers = data;
+            safeSetLocalStorage(TEACHERS_STORAGE_KEY, data);
+            saveToIndexedDB('teachers', data);
+            this.notify();
+          }
+        } catch (e) {}
+      });
+
+      es.addEventListener('clear_all', () => {
+        memoryTeachers = [];
+        memorySubmissions = [];
+        safeSetLocalStorage(TEACHERS_STORAGE_KEY, []);
+        safeSetLocalStorage(SUBMISSIONS_STORAGE_KEY, []);
+        saveToIndexedDB('teachers', []);
+        saveToIndexedDB('submissions', []);
+        this.notify();
+      });
+
+      es.onerror = () => {
+        this.setSyncStatus('offline');
+        try {
+          es.close();
+        } catch (e) {}
+        this.eventSource = null;
+
+        // Auto-reconnect after 3 seconds
+        clearTimeout(this.reconnectTimeout);
+        this.reconnectTimeout = setTimeout(() => {
+          this.connectEventStream();
+        }, 3000);
+      };
+    } catch (e) {
+      this.setSyncStatus('offline');
+    }
   }
 
   // --- INITIALIZATION ---
@@ -142,7 +240,10 @@ export class DatabaseService {
       isInitialized = true;
     }
 
-    // 3. Fetch canonical data from the persistent server
+    // 3. Connect real-time event stream
+    this.connectEventStream();
+
+    // 4. Fetch canonical data from the persistent server
     await this.fetchFromServer();
     return { teachers: memoryTeachers, submissions: memorySubmissions };
   }

@@ -17,6 +17,7 @@ interface HeaderProps {
   onOpenExportModal: () => void;
   totalTeachers: number;
   totalSubmissions: number;
+  syncStatus?: 'connected' | 'connecting' | 'offline';
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,7 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenFileExplorer,
   onOpenExportModal,
   totalTeachers,
-  totalSubmissions
+  totalSubmissions,
+  syncStatus = 'connected'
 }) => {
   const [currentTime, setCurrentTime] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
@@ -88,6 +90,32 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-xs text-slate-300 flex items-center gap-1">
                   <Award className="w-3.5 h-3.5 text-amber-400" />
                   NPSN: 20219135 • Akreditasi A
+                </span>
+                {/* Live Real-Time Indicator */}
+                <span 
+                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                    syncStatus === 'connected' 
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40' 
+                      : syncStatus === 'connecting'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-400/40'
+                      : 'bg-rose-500/20 text-rose-300 border-rose-400/40'
+                  }`}
+                  title={
+                    syncStatus === 'connected'
+                      ? 'Tersambung Real-Time ke Server Terpusat • Semua Laporan & Folder Tersimpan Permanen'
+                      : syncStatus === 'connecting'
+                      ? 'Sedang menghubungkan ke server real-time...'
+                      : 'Mode Offline • Data disimpan di perangkat & akan disinkron saat online'
+                  }
+                >
+                  <span className={`w-2 h-2 rounded-full ${
+                    syncStatus === 'connected' 
+                      ? 'bg-emerald-400 animate-pulse' 
+                      : syncStatus === 'connecting'
+                      ? 'bg-amber-400 animate-ping'
+                      : 'bg-rose-400'
+                  }`} />
+                  <span>{syncStatus === 'connected' ? 'LIVE REAL-TIME' : syncStatus === 'connecting' ? 'CONNECTING...' : 'OFFLINE'}</span>
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2 mt-0.5">
