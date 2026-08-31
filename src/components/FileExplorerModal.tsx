@@ -79,7 +79,12 @@ export const FileExplorerModal: React.FC<FileExplorerModalProps> = ({
   const teacherTrees = sortedTeachersList
     .filter(t => selectedTeacherFilter === 'all' || t.name === selectedTeacherFilter)
     .map(teacher => {
-      const teacherSubs = submissions.filter(s => s.teacherId === teacher.id);
+      const teacherSubs = submissions.filter(
+        s =>
+          s.teacherId === teacher.id ||
+          (teacher.nip && teacher.nip !== '-' && s.nip === teacher.nip) ||
+          s.teacherName.trim().toLowerCase() === teacher.name.trim().toLowerCase()
+      );
       
       const harianFiles: StoredFile[] = [];
       const bulananFiles: StoredFile[] = [];

@@ -122,7 +122,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
   // Grouping by Teacher for "Folder Arsip Guru" tab
   const teacherFolderGroups = teachers.map(teacher => {
-    const teacherSubmissions = submissions.filter(s => s.teacherId === teacher.id);
+    const teacherSubmissions = submissions.filter(
+      s =>
+        s.teacherId === teacher.id ||
+        (teacher.nip && teacher.nip !== '-' && s.nip === teacher.nip) ||
+        s.teacherName.trim().toLowerCase() === teacher.name.trim().toLowerCase()
+    );
     const files: StoredFile[] = [];
     teacherSubmissions.forEach(s => {
       files.push(...s.files);

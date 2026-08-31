@@ -46,24 +46,39 @@ export default function App() {
   // Toast notification
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
 
-  // Load Data on Mount & Sync with Server
+  // Load Data on Mount & Real-Time Sync with Server across Accounts/Devices
   useEffect(() => {
-    loadData();
+    // Initial local + offline DB + Server load
+    DatabaseService.init().then(res => {
+      if (res.teachers) setTeachers(res.teachers);
+      if (res.submissions) setSubmissions(res.submissions);
+    });
 
     // Subscribe to DB changes
     const unsubscribe = DatabaseService.subscribe(() => {
       loadData();
     });
 
-    // Fetch latest master data from server
-    DatabaseService.fetchFromServer().then(remote => {
-      if (remote.teachers || remote.submissions) {
-        loadData();
+    // Background real-time polling every 5s for multi-device & multi-account updates
+    const pollInterval = setInterval(() => {
+      DatabaseService.fetchFromServer();
+    }, 5000);
+
+    // Refresh immediately when window/tab is focused or visibility changes
+    const handleFocusOrVisible = () => {
+      if (document.visibilityState === 'visible') {
+        DatabaseService.fetchFromServer();
       }
-    });
+    };
+
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
 
     return () => {
       unsubscribe();
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
     };
   }, []);
 

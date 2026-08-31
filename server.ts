@@ -2,23 +2,39 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
+import { PERMANENT_DEFAULT_TEACHERS } from './src/data/defaultTeachers';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const TEACHERS_FILE = path.join(DATA_DIR, 'teachers.json');
 const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
 
-// Ensure data folder and data files exist
+// Ensure data folder and default data files exist
 function initDataFiles() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
 
-  if (!fs.existsSync(TEACHERS_FILE)) {
-    fs.writeFileSync(TEACHERS_FILE, JSON.stringify([], null, 2), 'utf-8');
-  }
+    if (!fs.existsSync(TEACHERS_FILE)) {
+      fs.writeFileSync(TEACHERS_FILE, JSON.stringify(PERMANENT_DEFAULT_TEACHERS, null, 2), 'utf-8');
+    } else {
+      // If teachers file is empty or corrupted, populate default
+      try {
+        const content = fs.readFileSync(TEACHERS_FILE, 'utf-8');
+        const parsed = JSON.parse(content);
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+          fs.writeFileSync(TEACHERS_FILE, JSON.stringify(PERMANENT_DEFAULT_TEACHERS, null, 2), 'utf-8');
+        }
+      } catch (e) {
+        fs.writeFileSync(TEACHERS_FILE, JSON.stringify(PERMANENT_DEFAULT_TEACHERS, null, 2), 'utf-8');
+      }
+    }
 
-  if (!fs.existsSync(SUBMISSIONS_FILE)) {
-    fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify([], null, 2), 'utf-8');
+    if (!fs.existsSync(SUBMISSIONS_FILE)) {
+      fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify([], null, 2), 'utf-8');
+    }
+  } catch (err) {
+    console.error('Error initializing data files:', err);
   }
 }
 
@@ -29,9 +45,14 @@ function readTeachers() {
     initDataFiles();
     const content = fs.readFileSync(TEACHERS_FILE, 'utf-8');
     const parsed = JSON.parse(content);
-    return Array.isArray(parsed) ? parsed : [];
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed;
+    }
+    // Fallback to permanent default teachers
+    writeTeachers(PERMANENT_DEFAULT_TEACHERS);
+    return PERMANENT_DEFAULT_TEACHERS;
   } catch (e) {
-    return [];
+    return PERMANENT_DEFAULT_TEACHERS;
   }
 }
 
@@ -68,12 +89,18 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+  app.use(express.json({ limit: '100mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
   // --- API ROUTES ---
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', app: 'Sikawan SDN Babelan Kota 01', timestamp: new Date().toISOString() });
+    res.json({
+      status: 'ok',
+      app: 'Sikawan SDN Babelan Kota 01',
+      teachersCount: readTeachers().length,
+      submissionsCount: readSubmissions().length,
+      timestamp: new Date().toISOString()
+    });
   });
 
   // Get Teachers
@@ -92,6 +119,21 @@ async function startServer() {
     return res.status(400).json({ error: 'Body must be an array of teachers' });
   });
 
+  // Reset to default 39 permanent teachers
+  app.post('/api/teachers/reset-baku', (req, res) => {
+    writeTeachers(PERMANENT_DEFAULT_TEACHERS);
+    res.json({ success: true, count: PERMANENT_DEFAULT_TEACHERS.length, teachers: PERMANENT_DEFAULT_TEACHERS });
+  });
+
+  // Delete Teacher
+  app.delete('/api/teachers/:id', (req, res) => {
+    const { id } = req.params;
+    const current = readTeachers();
+    const filtered = current.filter((t: any) => t.id !== id);
+    writeTeachers(filtered);
+    res.json({ success: true, count: filtered.length, teachers: filtered });
+  });
+
   // Clear all teachers
   app.post('/api/teachers/clear', (req, res) => {
     writeTeachers([]);
@@ -104,20 +146,52 @@ async function startServer() {
     res.json(submissions);
   });
 
-  // Update Submissions
+  // Save / Add Submissions (supports array or single submission object)
   app.post('/api/submissions', (req, res) => {
     const data = req.body;
     if (Array.isArray(data)) {
       writeSubmissions(data);
-      return res.json({ success: true, count: data.length });
+      return res.json({ success: true, count: data.length, submissions: data });
+    } else if (data && typeof data === 'object' && data.id) {
+      // Single submission added
+      const current = readSubmissions();
+      const existingIdx = current.findIndex((s: any) => s.id === data.id);
+      let updated;
+      if (existingIdx >= 0) {
+        updated = [...current];
+        updated[existingIdx] = data;
+      } else {
+        updated = [data, ...current];
+      }
+      writeSubmissions(updated);
+      return res.json({ success: true, count: updated.length, submissions: updated });
     }
-    return res.status(400).json({ error: 'Body must be an array of submissions' });
+    return res.status(400).json({ error: 'Body must be an array or a submission object' });
+  });
+
+  // Update submission status
+  app.patch('/api/submissions/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const current = readSubmissions();
+    const updated = current.map((s: any) => (s.id === id ? { ...s, status } : s));
+    writeSubmissions(updated);
+    res.json({ success: true, count: updated.length, submissions: updated });
+  });
+
+  // Delete single submission
+  app.delete('/api/submissions/:id', (req, res) => {
+    const { id } = req.params;
+    const current = readSubmissions();
+    const updated = current.filter((s: any) => s.id !== id);
+    writeSubmissions(updated);
+    res.json({ success: true, count: updated.length, submissions: updated });
   });
 
   // Clear all submissions
   app.post('/api/submissions/clear', (req, res) => {
     writeSubmissions([]);
-    res.json({ success: true, count: 0 });
+    res.json({ success: true, count: 0, submissions: [] });
   });
 
   // Clear ALL database completely

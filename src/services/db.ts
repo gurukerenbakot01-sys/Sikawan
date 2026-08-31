@@ -4,9 +4,99 @@ import { PERMANENT_DEFAULT_TEACHERS } from '../data/defaultTeachers';
 export const DEFAULT_TEACHERS: Teacher[] = PERMANENT_DEFAULT_TEACHERS;
 
 const TEACHERS_STORAGE_KEY = 'sikawan_teachers_v3';
-const OLD_TEACHERS_STORAGE_KEY_V2 = 'sikawan_teachers_v2';
 const SUBMISSIONS_STORAGE_KEY = 'sikawan_submissions_v3';
-const OLD_SUBMISSIONS_STORAGE_KEY_V2 = 'sikawan_submissions_v2';
+const DB_NAME = 'sikawan_offline_db';
+const DB_VERSION = 1;
+
+// In-memory runtime cache for instantaneous synchronous access
+let memoryTeachers: Teacher[] = [];
+let memorySubmissions: Submission[] = [];
+let isInitialized = false;
+
+/**
+ * IndexedDB helper for high-capacity offline storage (bypasses 5MB localStorage limit)
+ */
+function openIndexedDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      reject(new Error('IndexedDB not supported'));
+      return;
+    }
+    const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (e: any) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('teachers')) {
+        db.createObjectStore('teachers', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('submissions')) {
+        db.createObjectStore('submissions', { keyPath: 'id' });
+      }
+    };
+    request.onsuccess = (e: any) => resolve(e.target.result);
+    request.onerror = (e: any) => reject(e.target.error);
+  });
+}
+
+async function saveToIndexedDB(storeName: 'teachers' | 'submissions', items: any[]): Promise<void> {
+  try {
+    const db = await openIndexedDB();
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    store.clear();
+    items.forEach(item => {
+      if (item && item.id) {
+        store.put(item);
+      }
+    });
+    return new Promise(resolve => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  } catch (e) {
+    // Silently continue
+  }
+}
+
+async function loadFromIndexedDB(storeName: 'teachers' | 'submissions'): Promise<any[]> {
+  try {
+    const db = await openIndexedDB();
+    return new Promise(resolve => {
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(Array.isArray(req.result) ? req.result : []);
+      req.onerror = () => resolve([]);
+    });
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Safe LocalStorage writer that strips heavy base64 dataUrls if browser quota is exceeded
+ */
+function safeSetLocalStorage(key: string, data: any[]) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (err) {
+    // If quota exceeded, strip large dataUrl strings for localStorage only
+    // Full dataUrl is still preserved in Memory, IndexedDB, and Server!
+    try {
+      if (key === SUBMISSIONS_STORAGE_KEY) {
+        const lightweight = data.map((sub: Submission) => ({
+          ...sub,
+          files: (sub.files || []).map(f => ({
+            ...f,
+            dataUrl: f.dataUrl && f.dataUrl.length > 500 ? '' : f.dataUrl
+          }))
+        }));
+        localStorage.setItem(key, JSON.stringify(lightweight));
+      }
+    } catch (innerErr) {
+      console.warn('LocalStorage save skipped due to storage limits', innerErr);
+    }
+  }
+}
 
 export class DatabaseService {
   private static listeners: Array<() => void> = [];
@@ -28,26 +118,62 @@ export class DatabaseService {
     });
   }
 
+  // --- INITIALIZATION ---
+  static async init(): Promise<{ teachers: Teacher[]; submissions: Submission[] }> {
+    if (!isInitialized) {
+      // 1. First populate from localStorage / Defaults
+      this.getTeachers();
+      this.getSubmissions();
+
+      // 2. Load any IndexedDB offline data
+      try {
+        const [idbTeachers, idbSubmissions] = await Promise.all([
+          loadFromIndexedDB('teachers'),
+          loadFromIndexedDB('submissions')
+        ]);
+        if (Array.isArray(idbTeachers) && idbTeachers.length > 0) {
+          memoryTeachers = idbTeachers;
+        }
+        if (Array.isArray(idbSubmissions) && idbSubmissions.length > 0) {
+          memorySubmissions = idbSubmissions;
+        }
+      } catch (e) {}
+
+      isInitialized = true;
+    }
+
+    // 3. Fetch canonical data from the persistent server
+    await this.fetchFromServer();
+    return { teachers: memoryTeachers, submissions: memorySubmissions };
+  }
+
   // --- TEACHERS CRUD ---
   static getTeachers(): Teacher[] {
+    if (memoryTeachers.length > 0) {
+      return [...memoryTeachers].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
+    }
+
     try {
       const data = localStorage.getItem(TEACHERS_STORAGE_KEY);
       if (data !== null) {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
+          memoryTeachers = parsed;
+          return memoryTeachers.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
         }
       }
-      // If storage is empty or not yet set, initialize with permanent default teachers
+      // If storage is empty, initialize with permanent default 39 teachers
       if (PERMANENT_DEFAULT_TEACHERS.length > 0) {
-        localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(PERMANENT_DEFAULT_TEACHERS));
+        memoryTeachers = [...PERMANENT_DEFAULT_TEACHERS];
+        safeSetLocalStorage(TEACHERS_STORAGE_KEY, PERMANENT_DEFAULT_TEACHERS);
+        saveToIndexedDB('teachers', PERMANENT_DEFAULT_TEACHERS);
         this.syncToServer('teachers', PERMANENT_DEFAULT_TEACHERS);
         return [...PERMANENT_DEFAULT_TEACHERS].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
       }
       return [];
     } catch (e) {
-      console.error('Error fetching teachers from storage', e);
-      return [...PERMANENT_DEFAULT_TEACHERS];
+      memoryTeachers = [...PERMANENT_DEFAULT_TEACHERS];
+      return memoryTeachers;
     }
   }
 
@@ -71,7 +197,9 @@ export class DatabaseService {
     }
 
     const sorted = updated.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
-    localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(sorted));
+    memoryTeachers = sorted;
+    safeSetLocalStorage(TEACHERS_STORAGE_KEY, sorted);
+    saveToIndexedDB('teachers', sorted);
     this.notify();
     this.syncToServer('teachers', sorted);
     return sorted;
@@ -93,7 +221,9 @@ export class DatabaseService {
     }
 
     const sorted = updated.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'id'));
-    localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(sorted));
+    memoryTeachers = sorted;
+    safeSetLocalStorage(TEACHERS_STORAGE_KEY, sorted);
+    saveToIndexedDB('teachers', sorted);
     this.notify();
     this.syncToServer('teachers', sorted);
     return sorted;
@@ -102,33 +232,56 @@ export class DatabaseService {
   static deleteTeacher(id: string): Teacher[] {
     const teachers = this.getTeachers();
     const updated = teachers.filter(t => t.id !== id);
-    localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(updated));
+    memoryTeachers = updated;
+    safeSetLocalStorage(TEACHERS_STORAGE_KEY, updated);
+    saveToIndexedDB('teachers', updated);
     this.notify();
-    this.syncToServer('teachers', updated);
+    
+    // Call server delete endpoint
+    try {
+      fetch(`/api/teachers/${id}`, { method: 'DELETE' }).catch(() => {
+        this.syncToServer('teachers', updated);
+      });
+    } catch (e) {
+      this.syncToServer('teachers', updated);
+    }
     return updated;
   }
 
   static loadDefaultTeachersTemplate(): Teacher[] {
     const defaults = [...PERMANENT_DEFAULT_TEACHERS];
-    localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(defaults));
+    memoryTeachers = defaults;
+    safeSetLocalStorage(TEACHERS_STORAGE_KEY, defaults);
+    saveToIndexedDB('teachers', defaults);
     this.notify();
-    this.syncToServer('teachers', defaults);
+    try {
+      fetch('/api/teachers/reset-baku', { method: 'POST' }).catch(() => {
+        this.syncToServer('teachers', defaults);
+      });
+    } catch (e) {
+      this.syncToServer('teachers', defaults);
+    }
     return defaults;
   }
 
   static clearAllTeachers(): Teacher[] {
-    localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify([]));
-    localStorage.removeItem(OLD_TEACHERS_STORAGE_KEY_V2);
+    memoryTeachers = [];
+    safeSetLocalStorage(TEACHERS_STORAGE_KEY, []);
+    saveToIndexedDB('teachers', []);
     this.notify();
-    this.syncToServer('teachers', []);
+    try {
+      fetch('/api/teachers/clear', { method: 'POST' }).catch(() => {});
+    } catch (e) {}
     return [];
   }
 
   static clearAllData(): { teachers: Teacher[]; submissions: Submission[] } {
-    localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify([]));
-    localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify([]));
-    localStorage.removeItem(OLD_TEACHERS_STORAGE_KEY_V2);
-    localStorage.removeItem(OLD_SUBMISSIONS_STORAGE_KEY_V2);
+    memoryTeachers = [];
+    memorySubmissions = [];
+    safeSetLocalStorage(TEACHERS_STORAGE_KEY, []);
+    safeSetLocalStorage(SUBMISSIONS_STORAGE_KEY, []);
+    saveToIndexedDB('teachers', []);
+    saveToIndexedDB('submissions', []);
     this.notify();
     try {
       fetch('/api/clear-all', { method: 'POST' }).catch(() => {});
@@ -138,25 +291,41 @@ export class DatabaseService {
 
   // --- SUBMISSIONS CRUD ---
   static getSubmissions(): Submission[] {
+    if (memorySubmissions.length > 0) {
+      return memorySubmissions;
+    }
+
     try {
       const data = localStorage.getItem(SUBMISSIONS_STORAGE_KEY);
       if (data !== null) {
         const list = JSON.parse(data);
-        return Array.isArray(list) ? list : [];
+        if (Array.isArray(list)) {
+          memorySubmissions = list;
+          return list;
+        }
       }
       return [];
     } catch (e) {
-      console.error('Error fetching submissions from storage', e);
-      return [];
+      return memorySubmissions;
     }
   }
 
   static addSubmission(submission: Submission): Submission[] {
     const current = this.getSubmissions();
-    const updated = [submission, ...current];
-    localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(updated));
+    const existingIndex = current.findIndex(s => s.id === submission.id);
+    let updated: Submission[];
+    if (existingIndex >= 0) {
+      updated = [...current];
+      updated[existingIndex] = submission;
+    } else {
+      updated = [submission, ...current];
+    }
 
-    // Auto-ensure teacher is saved in the teachers table as well if present
+    memorySubmissions = updated;
+    safeSetLocalStorage(SUBMISSIONS_STORAGE_KEY, updated);
+    saveToIndexedDB('submissions', updated);
+
+    // Auto-ensure teacher is registered in teachers table
     if (submission.teacherName) {
       const existingTeachers = this.getTeachers();
       const exists = existingTeachers.some(
@@ -178,6 +347,8 @@ export class DatabaseService {
     }
 
     this.notify();
+
+    // Persist permanently to server
     this.syncToServer('submissions', updated);
     return updated;
   }
@@ -185,26 +356,51 @@ export class DatabaseService {
   static deleteSubmission(id: string): Submission[] {
     const current = this.getSubmissions();
     const updated = current.filter(s => s.id !== id);
-    localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(updated));
+    memorySubmissions = updated;
+    safeSetLocalStorage(SUBMISSIONS_STORAGE_KEY, updated);
+    saveToIndexedDB('submissions', updated);
     this.notify();
-    this.syncToServer('submissions', updated);
+
+    try {
+      fetch(`/api/submissions/${id}`, { method: 'DELETE' }).catch(() => {
+        this.syncToServer('submissions', updated);
+      });
+    } catch (e) {
+      this.syncToServer('submissions', updated);
+    }
     return updated;
   }
 
   static clearAllSubmissions(): Submission[] {
-    localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify([]));
-    localStorage.removeItem(OLD_SUBMISSIONS_STORAGE_KEY_V2);
+    memorySubmissions = [];
+    safeSetLocalStorage(SUBMISSIONS_STORAGE_KEY, []);
+    saveToIndexedDB('submissions', []);
     this.notify();
-    this.syncToServer('submissions', []);
+    try {
+      fetch('/api/submissions/clear', { method: 'POST' }).catch(() => {});
+    } catch (e) {}
     return [];
   }
 
   static updateSubmissionStatus(id: string, status: Submission['status']): Submission[] {
     const current = this.getSubmissions();
     const updated = current.map(s => (s.id === id ? { ...s, status } : s));
-    localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(updated));
+    memorySubmissions = updated;
+    safeSetLocalStorage(SUBMISSIONS_STORAGE_KEY, updated);
+    saveToIndexedDB('submissions', updated);
     this.notify();
-    this.syncToServer('submissions', updated);
+
+    try {
+      fetch(`/api/submissions/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      }).catch(() => {
+        this.syncToServer('submissions', updated);
+      });
+    } catch (e) {
+      this.syncToServer('submissions', updated);
+    }
     return updated;
   }
 
@@ -217,24 +413,27 @@ export class DatabaseService {
         body: JSON.stringify(payload)
       });
     } catch (e) {
-      // Offline or client-only mode
+      // Server offline or network issue
     }
   }
 
   static async fetchFromServer(): Promise<{ teachers?: Teacher[]; submissions?: Submission[] }> {
     const result: { teachers?: Teacher[]; submissions?: Submission[] } = {};
+    let hasChanges = false;
+
     try {
       const resTeachers = await fetch('/api/teachers');
       if (resTeachers.ok) {
         const data = await resTeachers.json();
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           result.teachers = data;
-          localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(data));
+          memoryTeachers = data;
+          safeSetLocalStorage(TEACHERS_STORAGE_KEY, data);
+          saveToIndexedDB('teachers', data);
+          hasChanges = true;
         }
       }
-    } catch (e) {
-      // server offline
-    }
+    } catch (e) {}
 
     try {
       const resSubmissions = await fetch('/api/submissions');
@@ -242,11 +441,16 @@ export class DatabaseService {
         const data = await resSubmissions.json();
         if (Array.isArray(data)) {
           result.submissions = data;
-          localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(data));
+          memorySubmissions = data;
+          safeSetLocalStorage(SUBMISSIONS_STORAGE_KEY, data);
+          saveToIndexedDB('submissions', data);
+          hasChanges = true;
         }
       }
-    } catch (e) {
-      // server offline
+    } catch (e) {}
+
+    if (hasChanges) {
+      this.notify();
     }
 
     return result;
@@ -285,11 +489,15 @@ export class DatabaseService {
     try {
       const data = JSON.parse(jsonString);
       if (Array.isArray(data.teachers)) {
-        localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(data.teachers));
+        memoryTeachers = data.teachers;
+        safeSetLocalStorage(TEACHERS_STORAGE_KEY, data.teachers);
+        saveToIndexedDB('teachers', data.teachers);
         this.syncToServer('teachers', data.teachers);
       }
       if (Array.isArray(data.submissions)) {
-        localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(data.submissions));
+        memorySubmissions = data.submissions;
+        safeSetLocalStorage(SUBMISSIONS_STORAGE_KEY, data.submissions);
+        saveToIndexedDB('submissions', data.submissions);
         this.syncToServer('submissions', data.submissions);
       }
       this.notify();
@@ -300,3 +508,4 @@ export class DatabaseService {
     }
   }
 }
+
